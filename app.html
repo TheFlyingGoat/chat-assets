@@ -12940,7 +12940,16 @@ window.DM = (() => {
     catch (error) { $('connection').textContent = error.message; }
     finally { pollBusy = false; }
   }, 1500);
-  api('/api/session').then(signedIn).catch(error => { if (user) $('connection').textContent = error.message; });
+  // Finish discovery before a sign-in POST can race a stale startup endpoint.
+  $('auth-submit').disabled = true;
+  $('auth-status').textContent = 'Connecting to chat…';
+  api('/api/session').then(signedIn).catch(error => {
+    if (user) $('connection').textContent = error.message;
+    else if (error.status !== 401) $('auth-status').textContent = error.message;
+  }).finally(() => {
+    $('auth-submit').disabled = false;
+    if ($('auth-status').textContent === 'Connecting to chat…') $('auth-status').textContent = '';
+  });
 })();
 
 </script></body></html>
